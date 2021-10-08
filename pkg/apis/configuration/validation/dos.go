@@ -2,7 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"net"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -33,26 +32,26 @@ func ValidateAppProtectDosLogConf(logConf *unstructured.Unstructured) error {
 	return nil
 }
 
-var accessLog = regexp.MustCompile(`^(((\d{1,3}\.){3}\d{1,3}):\d{1,5})$`)
+var (
+	dosLogDstEx = regexp.MustCompile(`(\S+:\d{1,5})|stderr`)
+)
 
-// ValidateAppProtectDosAccessLogDest validates destination for access log configuration
-func ValidateAppProtectDosAccessLogDest(accessLogDest string) error {
-	errormsg := "Error parsing App Protect Dos Access Log Dest config: Destination must follow format: <ip-address>:<port>"
-	if !accessLog.MatchString(accessLogDest) {
+// ValidateAppProtectDosLogDest validates destination for log configuration
+func ValidateAppProtectDosLogDest(dstAntn string) error {
+	errormsg := "Error parsing App Protect Log config: Destination must follow format: <ip-address | localhost | dns name>:<port> or stderr"
+	if !dosLogDstEx.MatchString(dstAntn) {
 		return fmt.Errorf("%s Log Destination did not follow format", errormsg)
 	}
-
-	dstchunks := strings.Split(accessLogDest, ":")
-
-	// This error can be ignored since the regex check ensures this string will be parsable
-	port, _ := strconv.Atoi(dstchunks[1])
-
-	if port > 65535 || port < 1 {
-		return fmt.Errorf("Error parsing port: %v not a valid port number", port)
+	if dstAntn == "stderr" {
+		return nil
 	}
 
-	if net.ParseIP(dstchunks[0]) == nil {
-		return fmt.Errorf("Error parsing host: %v is not a valid ip address", dstchunks[0])
+	dstchunks := strings.Split(dstAntn, ":")
+
+	// // This error can be ignored since the regex check ensures this string will be parsable
+	port, _ := strconv.Atoi(dstchunks[1])
+	if port > 65535 || port < 1 {
+		return fmt.Errorf("error parsing port: %v not a valid port number", port)
 	}
 
 	return nil

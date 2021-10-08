@@ -300,9 +300,9 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 	tlsRedirectConfig := generateTLSRedirectConfig(vsEx.VirtualServer.Spec.TLS)
 
 	policyOpts := policyOptions{
-		tls:         sslConfig != nil,
-		secretRefs:  vsEx.SecretRefs,
-		apResources: apResources,
+		tls:          sslConfig != nil,
+		secretRefs:   vsEx.SecretRefs,
+		apResources:  apResources,
 		dosResources: dosResources,
 	}
 
@@ -668,9 +668,9 @@ type policyOwnerDetails struct {
 }
 
 type policyOptions struct {
-	tls         bool
-	secretRefs  map[string]*secrets.SecretReference
-	apResources *appProtectResourcesForVS
+	tls          bool
+	secretRefs   map[string]*secrets.SecretReference
+	apResources  *appProtectResourcesForVS
 	dosResources *appProtectDosResourcesForVS
 }
 
@@ -1078,7 +1078,7 @@ func (p *policiesCfg) addDosConfig(
 		}
 	}
 
-	p.Dos.ApDosAccessLogDest = dos.DosAccessLogDest
+	p.Dos.ApDosAccessLogDest = generateDosLogDest(dos.DosAccessLogDest)
 	p.Dos.ApDosMonitor = dos.ApDosMonitor
 
 	return res
