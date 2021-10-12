@@ -1,36 +1,45 @@
 package validation
 
 import (
+	"fmt"
 	"strings"
 	"testing"
-	"fmt"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestValidateAppProtectDosAccessLogDest(t *testing.T) {
 	// Positive test cases
-	posDstAntns := []string{"10.10.1.1:514", "localhost:514", "dns.test.cluster:514"}
+	posDstAntns := []string{
+		"10.10.1.1:514",
+		"localhost:514",
+		"dns.test.svc.cluster.local:514",
+		"cluster.local:514",
+		"dash-test.cluster.local:514",
+	}
 
 	// Negative test cases item, expected error message
 	negDstAntns := [][]string{
-		{"NotValid", "Error parsing App Protect Log config: Destination must follow format: <ip-address | localhost | dns name>:<port> or stderr Log Destination did not follow format"},
+		{"NotValid", "invalid log destination: NotValid, must follow format: <ip-address | localhost | dns name>:<port> or stderr"},
+		{"cluster.local", "invalid log destination: cluster.local, must follow format: <ip-address | localhost | dns name>:<port> or stderr"},
+		{"-cluster.local:514", "invalid log destination: -cluster.local:514, must follow format: <ip-address | localhost | dns name>:<port> or stderr"},
 		{"10.10.1.1:99999", "not a valid port number"},
 	}
 
 	for _, tCase := range posDstAntns {
 		err := ValidateAppProtectDosLogDest(tCase)
 		if err != nil {
-			t.Errorf("got %v expected nil", err)
+			t.Errorf("expected nil, got %v", err)
 		}
 	}
 
 	for _, nTCase := range negDstAntns {
 		err := ValidateAppProtectDosLogDest(nTCase[0])
 		if err == nil {
-			t.Errorf("got no error expected error containing %s", nTCase[1])
+			t.Errorf("got no error expected error containing '%s'", nTCase[1])
 		} else {
 			if !strings.Contains(err.Error(), nTCase[1]) {
-				t.Errorf("got %v expected to contain: %s", err, nTCase[1])
+				t.Errorf("got '%v', expected: '%s'", err, nTCase[1])
 			}
 		}
 	}

@@ -33,27 +33,33 @@ func ValidateAppProtectDosLogConf(logConf *unstructured.Unstructured) error {
 }
 
 var (
-	dosLogDstEx = regexp.MustCompile(`(\S+:\d{1,5})|stderr`)
+	validDnsRegex       = regexp.MustCompile(`^([A-Za-z0-9][A-Za-z0-9-]{1,62}\.)([A-Za-z0-9-]{1,63}\.)*[A-Za-z]{2,6}:\d{1,5}$`)
+	validIpRegex        = regexp.MustCompile(`^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$`)
+	validLocalhostRegex = regexp.MustCompile(`^localhost:\d{1,5}$`)
 )
 
 // ValidateAppProtectDosLogDest validates destination for log configuration
 func ValidateAppProtectDosLogDest(dstAntn string) error {
-	errormsg := "Error parsing App Protect Log config: Destination must follow format: <ip-address | localhost | dns name>:<port> or stderr"
-	if !dosLogDstEx.MatchString(dstAntn) {
-		return fmt.Errorf("%s Log Destination did not follow format", errormsg)
+	if validIpRegex.MatchString(dstAntn) || validDnsRegex.MatchString(dstAntn) || validLocalhostRegex.MatchString(dstAntn) {
+		chunks := strings.Split(dstAntn, ":")
+		err := validatePort(chunks[1])
+		if err != nil {
+			return fmt.Errorf("invalid log destination: %w", err)
+		}
+		return nil
 	}
 	if dstAntn == "stderr" {
 		return nil
 	}
 
-	dstchunks := strings.Split(dstAntn, ":")
+	return fmt.Errorf("invalid log destination: %s, must follow format: <ip-address | localhost | dns name>:<port> or stderr", dstAntn)
+}
 
-	// // This error can be ignored since the regex check ensures this string will be parsable
-	port, _ := strconv.Atoi(dstchunks[1])
+func validatePort(value string) error {
+	port, _ := strconv.Atoi(value)
 	if port > 65535 || port < 1 {
 		return fmt.Errorf("error parsing port: %v not a valid port number", port)
 	}
-
 	return nil
 }
 
